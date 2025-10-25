@@ -6,7 +6,8 @@ import {
   setDoc, 
   getDoc, 
   collection, 
-  getDocs
+  getDocs,
+  deleteDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // Your Firebase configuration
@@ -28,11 +29,18 @@ const db = getFirestore(app);
 const longUrlInput = document.getElementById('longUrl');
 const customIdInput = document.getElementById('customId');
 const saveBtn = document.getElementById('saveBtn');
+const updateBtn = document.getElementById('updateBtn');
+const cancelBtn = document.getElementById('cancelBtn');
 const resultContainer = document.getElementById('result');
 const shortUrlInput = document.getElementById('shortUrl');
 const copyBtn = document.getElementById('copyBtn');
 const previewLink = document.getElementById('previewLink');
 const linksList = document.getElementById('linksList');
+const formTitle = document.getElementById('formTitle');
+
+// State variables
+let currentEditId = null;
+let isEditMode = false;
 
 // === Enhanced Redirect Function - Direct to Target URL ===
 async function handleRedirection() {
@@ -112,13 +120,6 @@ function showRedirectError(id) {
   `;
   
   addRedirectStyles();
-}
-
-// === Go to main app ===
-function goToMainApp() {
-  // Remove the id parameter and reload
-  const newUrl = window.location.origin + window.location.pathname;
-  window.location.href = newUrl;
 }
 
 // === Add redirect page styles ===
@@ -248,6 +249,12 @@ function addRedirectStyles() {
   document.head.insertAdjacentHTML('beforeend', styles);
 }
 
+// === Go to main app ===
+function goToMainApp() {
+  const newUrl = window.location.origin + window.location.pathname;
+  window.location.href = newUrl;
+}
+
 // === Initialize Main App ===
 function initializeMainApp() {
   loadLinksList();
@@ -260,6 +267,14 @@ function setupEventListeners() {
     saveBtn.addEventListener('click', saveShortLink);
   }
   
+  if (updateBtn) {
+    updateBtn.addEventListener('click', updateShortLink);
+  }
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', cancelEdit);
+  }
+  
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
       copyToClipboard(shortUrlInput.value);
@@ -269,18 +284,30 @@ function setupEventListeners() {
   // Enter key support
   if (longUrlInput) {
     longUrlInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') saveShortLink();
+      if (e.key === 'Enter') {
+        if (isEditMode) {
+          updateShortLink();
+        } else {
+          saveShortLink();
+        }
+      }
     });
   }
 
   if (customIdInput) {
     customIdInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') saveShortLink();
+      if (e.key === 'Enter') {
+        if (isEditMode) {
+          updateShortLink();
+        } else {
+          saveShortLink();
+        }
+      }
     });
   }
 }
 
-// === Create or Update Short Link ===
+// === Create New Short Link ===
 async function saveShortLink() {
   const customId = customIdInput.value.trim();
   const longUrl = longUrlInput.value.trim();
@@ -301,9 +328,19 @@ async function saveShortLink() {
 
     const formattedUrl = longUrl.startsWith('http') ? longUrl : `https://${longUrl}`;
     
+    // Check if ID already exists
+    const existingDoc = await getDoc(doc(db, "links", customId));
+    if (existingDoc.exists()) {
+      showNotification('❌ This custom ID already exists. Please choose a different one.', 'error');
+      saveBtn.innerHTML = '<i class="fas fa-rocket"></i> Create Short Link';
+      saveBtn.disabled = false;
+      return;
+    }
+    
     await setDoc(doc(db, "links", customId), { 
       url: formattedUrl,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
 
     const shortUrl = `${window.location.origin}${window.location.pathname}?id=${customId}`;
@@ -313,9 +350,11 @@ async function saveShortLink() {
     
     showNotification('✅ Short link created successfully!', 'success');
     
+    // Clear inputs
     longUrlInput.value = '';
     customIdInput.value = '';
     
+    // Refresh links list
     loadLinksList();
 
   } catch (error) {
@@ -324,6 +363,113 @@ async function saveShortLink() {
   } finally {
     saveBtn.innerHTML = '<i class="fas fa-rocket"></i> Create Short Link';
     saveBtn.disabled = false;
+  }
+}
+
+// === Edit Short Link ===
+function editShortLink(linkId, currentUrl) {
+  currentEditId = linkId;
+  isEditMode = true;
+  
+  // Populate form with current data
+  customIdInput.value = linkId;
+  longUrlInput.value = currentUrl;
+  
+  // Disable custom ID input during edit (can't change ID)
+  customIdInput.disabled = true;
+  
+  // Update UI for edit mode
+  formTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Short Link';
+  saveBtn.classList.add('hidden');
+  updateBtn.classList.remove('hidden');
+  cancelBtn.classList.remove('hidden');
+  document.querySelector('.shortener-card').classList.add('edit-mode');
+  
+  // Scroll to form
+  longUrlInput.focus();
+  showNotification('📝 You are now editing the link. Update the URL below.', 'info');
+}
+
+// === Update Short Link ===
+async function updateShortLink() {
+  const longUrl = longUrlInput.value.trim();
+
+  if (!longUrl) {
+    showNotification('Please enter a URL!', 'error');
+    return;
+  }
+
+  if (!isValidUrl(longUrl)) {
+    showNotification('Please enter a valid URL (include http:// or https://)', 'error');
+    return;
+  }
+
+  try {
+    updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    updateBtn.disabled = true;
+
+    const formattedUrl = longUrl.startsWith('http') ? longUrl : `https://${longUrl}`;
+    
+    await setDoc(doc(db, "links", currentEditId), { 
+      url: formattedUrl,
+      createdAt: (await getDoc(doc(db, "links", currentEditId))).data().createdAt,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    showNotification('✅ Link updated successfully!', 'success');
+    
+    // Reset form
+    cancelEdit();
+    
+    // Refresh links list
+    loadLinksList();
+
+  } catch (error) {
+    console.error("Error updating document: ", error);
+    showNotification('❌ Error updating link. Please try again.', 'error');
+  } finally {
+    updateBtn.innerHTML = '<i class="fas fa-save"></i> Update Link';
+    updateBtn.disabled = false;
+  }
+}
+
+// === Cancel Edit ===
+function cancelEdit() {
+  currentEditId = null;
+  isEditMode = false;
+  
+  // Clear form
+  customIdInput.value = '';
+  longUrlInput.value = '';
+  customIdInput.disabled = false;
+  
+  // Reset UI
+  formTitle.innerHTML = '<i class="fas fa-plus"></i> Create New Short Link';
+  saveBtn.classList.remove('hidden');
+  updateBtn.classList.add('hidden');
+  cancelBtn.classList.add('hidden');
+  document.querySelector('.shortener-card').classList.remove('edit-mode');
+  resultContainer.classList.add('hidden');
+}
+
+// === Delete Short Link ===
+async function deleteShortLink(linkId) {
+  if (!confirm('Are you sure you want to delete this short link? This action cannot be undone.')) {
+    return;
+  }
+
+  try {
+    await deleteDoc(doc(db, "links", linkId));
+    showNotification('✅ Link deleted successfully!', 'success');
+    loadLinksList();
+    
+    // If we're editing this link, cancel edit mode
+    if (currentEditId === linkId) {
+      cancelEdit();
+    }
+  } catch (error) {
+    console.error("Error deleting document: ", error);
+    showNotification('❌ Error deleting link. Please try again.', 'error');
   }
 }
 
@@ -374,11 +520,18 @@ function displayLinksList(links) {
           <button class="btn-small btn-test" onclick="testRedirect('${currentUrl}?id=${link.id}')">
             <i class="fas fa-external-link-alt"></i> Test
           </button>
+          <button class="btn-small btn-edit" onclick="editShortLink('${link.id}', '${link.url}')">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <button class="btn-small btn-delete" onclick="deleteShortLink('${link.id}')">
+            <i class="fas fa-trash"></i> Delete
+          </button>
         </div>
       </div>
       <div class="link-original">${link.url}</div>
       <div class="link-meta">
         <small>Created: ${new Date(link.createdAt).toLocaleDateString()}</small>
+        <small>${link.updatedAt ? `Updated: ${new Date(link.updatedAt).toLocaleDateString()}` : ''}</small>
       </div>
     </div>
   `).join('');
@@ -432,7 +585,7 @@ function showNotification(message, type) {
   notification.className = `notification ${type}`;
   notification.innerHTML = `
     <div class="notification-content">
-      <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+      <i class="fas fa-${getNotificationIcon(type)}"></i>
       <span>${message}</span>
     </div>
   `;
@@ -462,6 +615,9 @@ function showNotification(message, type) {
       .notification.error {
         background: #f56565;
       }
+      .notification.info {
+        background: #4299e1;
+      }
       .notification-content {
         display: flex;
         align-items: center;
@@ -490,6 +646,16 @@ function showNotification(message, type) {
   }, 3000);
 }
 
+// === Get notification icon ===
+function getNotificationIcon(type) {
+  const icons = {
+    success: 'check-circle',
+    error: 'exclamation-circle',
+    info: 'info-circle'
+  };
+  return icons[type] || 'info-circle';
+}
+
 // === Initialize App ===
 window.onload = handleRedirection;
 
@@ -498,3 +664,5 @@ window.copyToClipboard = copyToClipboard;
 window.saveShortLink = saveShortLink;
 window.testRedirect = testRedirect;
 window.goToMainApp = goToMainApp;
+window.editShortLink = editShortLink;
+window.deleteShortLink = deleteShortLink;
