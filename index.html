@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Personal Link Shortener</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ViralHub Shortner</title>
+<style>
+  body { font-family: Arial; text-align: center; padding: 50px; }
+  #shortnerUI { display: none; } /* hide by default */
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔗 Firebase Shortener</h1>
-    <input type="text" id="longUrl" placeholder="Enter full URL (https://youtube.com)">
-    <input type="text" id="customId" placeholder="Custom ID (e.g. 01)">
-    <button id="saveBtn">Create / Update</button>
+<div id="shortnerUI">
+  <h1>🔗 ViralHub Shortner</h1>
+  <input type="text" id="longUrl" placeholder="Enter full link (https://...)"><br><br>
+  <input type="text" id="shortId" placeholder="Custom short ID (e.g. 01)"><br><br>
+  <button onclick="saveShortLink()">Create / Update</button>
+  <div id="linksList"></div>
+</div>
 
-    <h2>Your Links</h2>
-    <div id="linksList"></div>
-  </div>
-
-  <!-- Firebase -->
-  <script type="module" src="script.js"></script>
+<script type="module" src="script.js"></script>
 </body>
 </html>
