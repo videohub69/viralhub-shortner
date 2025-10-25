@@ -15,20 +15,34 @@
         <i class="fas fa-link"></i>
         <h1>QuickLink</h1>
       </div>
-      <p class="tagline">Shorten your links in seconds</p>
+      <p class="tagline">Shorten and manage your links</p>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
+      <!-- Shortener Card -->
       <div class="shortener-card">
-        <h2>Create Short URL</h2>
+        <h2 id="formTitle">
+          <i class="fas fa-plus"></i>
+          Create New Short Link
+        </h2>
         <div class="input-group">
           <input type="text" id="longUrl" placeholder="Enter full URL (https://example.com)" class="url-input">
           <input type="text" id="customId" placeholder="Custom ID (e.g. mylink)" class="custom-input">
-          <button id="saveBtn" class="btn-primary">
-            <i class="fas fa-rocket"></i>
-            Create Short Link
-          </button>
+          <div class="form-actions">
+            <button id="saveBtn" class="btn-primary">
+              <i class="fas fa-rocket"></i>
+              Create Short Link
+            </button>
+            <button id="updateBtn" class="btn-update hidden">
+              <i class="fas fa-save"></i>
+              Update Link
+            </button>
+            <button id="cancelBtn" class="btn-secondary hidden">
+              <i class="fas fa-times"></i>
+              Cancel
+            </button>
+          </div>
         </div>
         
         <!-- Result Section -->
@@ -61,14 +75,14 @@
           <p>Instant URL shortening with real-time updates</p>
         </div>
         <div class="feature-card">
-          <i class="fas fa-user-edit"></i>
-          <h3>Custom IDs</h3>
-          <p>Create memorable custom short links</p>
+          <i class="fas fa-edit"></i>
+          <h3>Easy Editing</h3>
+          <p>Update your links anytime without changing the short URL</p>
         </div>
         <div class="feature-card">
           <i class="fas fa-chart-line"></i>
-          <h3>Easy Management</h3>
-          <p>View and manage all your links in one place</p>
+          <h3>Full Control</h3>
+          <p>Manage all your links in one place</p>
         </div>
       </div>
 
