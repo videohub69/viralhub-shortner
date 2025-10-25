@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Link Shortener</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🔗 Firebase Shortener</h1>
+    <input type="text" id="longUrl" placeholder="Enter full URL (https://youtube.com)">
+    <input type="text" id="customId" placeholder="Custom ID (e.g. 01)">
+    <button id="saveBtn">Create / Update</button>
+
+    <h2>Your Links</h2>
+    <div id="linksList"></div>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module" src="script.js"></script>
+</body>
+</html>
