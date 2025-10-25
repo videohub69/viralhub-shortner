@@ -43,23 +43,22 @@ const linksCount = document.getElementById('linksCount');
 let currentEditId = null;
 let isEditMode = false;
 
-// === Instant Redirect Function - No Waiting Page ===
-async function handleRedirection() {
+// === Immediate Redirect Check - Runs First ===
+(function checkImmediateRedirect() {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
     
-    if (!id) {
-        // Not a redirect request, load the main app
+    if (id) {
+        // If there's an ID parameter, redirect immediately without loading the app
+        processImmediateRedirect(id);
+    } else {
+        // No ID parameter, initialize the main app
         initializeMainApp();
-        return;
     }
+})();
 
-    // It's a redirect request - process immediately without loading screen
-    await processInstantRedirect(id);
-}
-
-// === Process Instant Redirect ===
-async function processInstantRedirect(id) {
+// === Process Immediate Redirect ===
+async function processImmediateRedirect(id) {
     try {
         const ref = doc(db, "links", id);
         const docSnap = await getDoc(ref);
@@ -73,100 +72,206 @@ async function processInstantRedirect(id) {
                 finalUrl = 'https://' + finalUrl;
             }
             
-            // INSTANT REDIRECT - No delay, no loading screen
+            // IMMEDIATE REDIRECT - No app loading, no delay
+            console.log('Redirecting to:', finalUrl);
             window.location.href = finalUrl;
+            return; // Stop execution here
             
         } else {
-            // Show error immediately without loading screen
-            showInstantError(id);
+            // Link not found - show error
+            showLinkNotFoundError(id);
         }
     } catch (error) {
         console.error("Redirect error:", error);
-        showInstantError(id);
+        showLinkNotFoundError(id);
     }
 }
 
-// === Show Instant Error (no loading screen) ===
-function showInstantError(id) {
-    // Simple error page without complex styling
-    document.body.innerHTML = `
-        <div style="
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: white;
-            text-align: center;
-        ">
-            <div style="
-                background: rgba(255,255,255,0.95);
-                padding: 40px;
+// === Show Link Not Found Error ===
+function showLinkNotFoundError(id) {
+    // Completely replace the page with error message
+    document.documentElement.innerHTML = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Link Not Found - QuickLink</title>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+                color: white;
+            }
+            .error-container {
+                background: rgba(255, 255, 255, 0.95);
+                padding: 50px 40px;
                 border-radius: 20px;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                text-align: center;
                 max-width: 500px;
                 width: 100%;
                 color: #2d3748;
-            ">
-                <div style="font-size: 4rem; color: #e53e3e; margin-bottom: 20px;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h2 style="margin-bottom: 15px; font-size: 2rem;">Link Not Found</h2>
-                <p style="color: #718096; margin-bottom: 25px; font-size: 1.1rem;">
-                    The short link <strong>"${id}"</strong> doesn't exist or may have been deleted.
+            }
+            .error-icon {
+                font-size: 5rem;
+                color: #e53e3e;
+                margin-bottom: 25px;
+            }
+            .error-container h1 {
+                font-size: 2.2rem;
+                margin-bottom: 15px;
+                color: #2d3748;
+            }
+            .error-container p {
+                color: #718096;
+                margin-bottom: 30px;
+                font-size: 1.1rem;
+                line-height: 1.6;
+            }
+            .link-id {
+                background: #fff5f5;
+                padding: 10px 15px;
+                border-radius: 8px;
+                margin: 20px 0;
+                font-family: monospace;
+                font-size: 1.1rem;
+                color: #c53030;
+                border: 1px solid #fed7d7;
+            }
+            .suggestions {
+                background: #f7fafc;
+                padding: 25px;
+                border-radius: 12px;
+                margin: 25px 0;
+                text-align: left;
+                border: 1px solid #e2e8f0;
+            }
+            .suggestions h3 {
+                color: #4a5568;
+                margin-bottom: 15px;
+                font-size: 1.2rem;
+            }
+            .suggestions ul {
+                color: #718096;
+                padding-left: 20px;
+            }
+            .suggestions li {
+                margin-bottom: 10px;
+                line-height: 1.5;
+            }
+            .actions {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                margin: 30px 0;
+                flex-wrap: wrap;
+            }
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 14px 28px;
+                border-radius: 10px;
+                font-weight: 600;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                border: none;
+                cursor: pointer;
+                font-size: 1rem;
+                font-family: inherit;
+            }
+            .btn-primary {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            }
+            .btn-secondary {
+                background: #e2e8f0;
+                color: #4a5568;
+            }
+            .btn-secondary:hover {
+                background: #cbd5e0;
+                transform: translateY(-1px);
+            }
+            @media (max-width: 768px) {
+                .error-container {
+                    padding: 40px 25px;
+                }
+                .actions {
+                    flex-direction: column;
+                    align-items: center;
+                }
+                .btn {
+                    width: 200px;
+                    justify-content: center;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="error-container">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h1>Link Not Found</h1>
+            <p>The short link you're trying to access doesn't exist or may have been deleted.</p>
+            
+            <div class="link-id">
+                Short ID: <strong>${id}</strong>
+            </div>
+            
+            <div class="suggestions">
+                <h3>What you can do:</h3>
+                <ul>
+                    <li>Check if the short ID is correct</li>
+                    <li>Contact the person who shared this link with you</li>
+                    <li>Create your own short links for free</li>
+                </ul>
+            </div>
+            
+            <div class="actions">
+                <button class="btn btn-primary" onclick="goToMainApp()">
+                    <i class="fas fa-plus"></i>
+                    Create Short Link
+                </button>
+                <button class="btn btn-secondary" onclick="goToMainApp()">
+                    <i class="fas fa-home"></i>
+                    Back to Home
+                </button>
+            </div>
+            
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <p style="color: #a0aec0; font-size: 0.9rem;">
+                    <i class="fas fa-link"></i>
+                    Powered by QuickLink URL Shortener
                 </p>
-                
-                <div style="background: #fff5f5; padding: 20px; border-radius: 10px; margin: 25px 0; text-align: left;">
-                    <h3 style="color: #c53030; margin-bottom: 15px; font-size: 1.2rem;">What you can do:</h3>
-                    <ul style="color: #718096; padding-left: 20px;">
-                        <li style="margin-bottom: 8px;">Check if the short ID is correct</li>
-                        <li style="margin-bottom: 8px;">Contact the link owner</li>
-                        <li style="margin-bottom: 8px;">Create your own short link</li>
-                    </ul>
-                </div>
-                
-                <div style="display: flex; gap: 15px; justify-content: center; margin: 30px 0; flex-wrap: wrap;">
-                    <button onclick="goToMainApp()" style="
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 12px 24px;
-                        border-radius: 8px;
-                        font-weight: 600;
-                        transition: all 0.3s ease;
-                        border: none;
-                        cursor: pointer;
-                        font-size: 1rem;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 20px rgba(102, 126, 234, 0.3)'" 
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                        <i class="fas fa-plus"></i>
-                        Create Short Link
-                    </button>
-                    <button onclick="goToMainApp()" style="
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 12px 24px;
-                        border-radius: 8px;
-                        font-weight: 600;
-                        transition: all 0.3s ease;
-                        border: none;
-                        cursor: pointer;
-                        font-size: 1rem;
-                        background: #e2e8f0;
-                        color: #4a5568;
-                    " onmouseover="this.style.background='#cbd5e0'" 
-                    onmouseout="this.style.background='#e2e8f0'">
-                        <i class="fas fa-home"></i>
-                        Back to Home
-                    </button>
-                </div>
             </div>
         </div>
+        
+        <script>
+            function goToMainApp() {
+                // Remove the id parameter and go to main app
+                const baseUrl = window.location.origin + window.location.pathname;
+                window.location.href = baseUrl;
+            }
+        </script>
+    </body>
+    </html>
     `;
 }
 
@@ -185,43 +290,59 @@ function initializeMainApp() {
 // === Setup Event Listeners ===
 function setupEventListeners() {
     // Save button
-    saveBtn.addEventListener('click', saveShortLink);
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveShortLink);
+    }
     
     // Update button
-    updateBtn.addEventListener('click', updateShortLink);
+    if (updateBtn) {
+        updateBtn.addEventListener('click', updateShortLink);
+    }
     
     // Cancel button
-    cancelBtn.addEventListener('click', cancelEdit);
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', cancelEdit);
+    }
     
     // Copy button
-    copyBtn.addEventListener('click', () => {
-        copyToClipboard(shortUrlInput.value);
-    });
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            copyToClipboard(shortUrlInput.value);
+        });
+    }
 
     // Enter key support
-    longUrlInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            if (isEditMode) {
-                updateShortLink();
-            } else {
-                saveShortLink();
+    if (longUrlInput) {
+        longUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (isEditMode) {
+                    updateShortLink();
+                } else {
+                    saveShortLink();
+                }
             }
-        }
-    });
+        });
+    }
 
-    customIdInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            if (isEditMode) {
-                updateShortLink();
-            } else {
-                saveShortLink();
+    if (customIdInput) {
+        customIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (isEditMode) {
+                    updateShortLink();
+                } else {
+                    saveShortLink();
+                }
             }
-        }
-    });
+        });
+    }
 
     // Input validation
-    longUrlInput.addEventListener('input', validateUrl);
-    customIdInput.addEventListener('input', validateCustomId);
+    if (longUrlInput) {
+        longUrlInput.addEventListener('input', validateUrl);
+    }
+    if (customIdInput) {
+        customIdInput.addEventListener('input', validateCustomId);
+    }
 }
 
 // === Input Validation ===
@@ -671,9 +792,6 @@ function getNotificationIcon(type) {
     };
     return icons[type] || 'info-circle';
 }
-
-// === Initialize App ===
-window.onload = handleRedirection;
 
 // === Expose functions to global scope ===
 window.copyToClipboard = copyToClipboard;
