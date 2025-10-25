@@ -1,23 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ViralHub Shortner</title>
-<style>
-  body { font-family: Arial; text-align: center; padding: 50px; }
-  #shortnerUI { display: none; } /* hide by default */
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickLink - URL Shortener</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-<div id="shortnerUI">
-  <h1>🔗 ViralHub Shortner</h1>
-  <input type="text" id="longUrl" placeholder="Enter full link (https://...)"><br><br>
-  <input type="text" id="shortId" placeholder="Custom short ID (e.g. 01)"><br><br>
-  <button onclick="saveShortLink()">Create / Update</button>
-  <div id="linksList"></div>
-</div>
+  <div class="container">
+    <!-- Header Section -->
+    <header class="header">
+      <div class="logo">
+        <i class="fas fa-link"></i>
+        <h1>QuickLink</h1>
+      </div>
+      <p class="tagline">Shorten your links in seconds</p>
+    </header>
 
-<script type="module" src="script.js"></script>
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="shortener-card">
+        <h2>Create Short URL</h2>
+        <div class="input-group">
+          <input type="text" id="longUrl" placeholder="Enter full URL (https://example.com)" class="url-input">
+          <input type="text" id="customId" placeholder="Custom ID (e.g. mylink)" class="custom-input">
+          <button id="saveBtn" class="btn-primary">
+            <i class="fas fa-rocket"></i>
+            Create Short Link
+          </button>
+        </div>
+        
+        <!-- Result Section -->
+        <div id="result" class="result-container hidden">
+          <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <h3>Your Short URL is Ready!</h3>
+          <div class="result-group">
+            <input type="text" id="shortUrl" readonly class="result-input">
+            <button id="copyBtn" class="btn-copy">
+              <i class="far fa-copy"></i>
+              Copy
+            </button>
+          </div>
+          <div class="link-preview">
+            <a href="#" id="previewLink" target="_blank">
+              <i class="fas fa-external-link-alt"></i>
+              Test your link
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features Section -->
+      <div class="features">
+        <div class="feature-card">
+          <i class="fas fa-bolt"></i>
+          <h3>Lightning Fast</h3>
+          <p>Instant URL shortening with real-time updates</p>
+        </div>
+        <div class="feature-card">
+          <i class="fas fa-user-edit"></i>
+          <h3>Custom IDs</h3>
+          <p>Create memorable custom short links</p>
+        </div>
+        <div class="feature-card">
+          <i class="fas fa-chart-line"></i>
+          <h3>Easy Management</h3>
+          <p>View and manage all your links in one place</p>
+        </div>
+      </div>
+
+      <!-- Links List Section -->
+      <div class="links-section">
+        <h2>
+          <i class="fas fa-list"></i>
+          Your Short Links
+        </h2>
+        <div id="linksList" class="links-list">
+          <div class="empty-state">
+            <i class="fas fa-link"></i>
+            <p>No links created yet. Create your first short URL above!</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Powered by Firebase • Made with <i class="fas fa-heart"></i> for you</p>
+    </footer>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module" src="script.js"></script>
 </body>
 </html>
