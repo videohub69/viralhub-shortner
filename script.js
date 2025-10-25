@@ -6,8 +6,7 @@ import {
   setDoc, 
   getDoc, 
   collection, 
-  getDocs,
-  onSnapshot 
+  getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // Your Firebase configuration
@@ -35,10 +34,7 @@ const copyBtn = document.getElementById('copyBtn');
 const previewLink = document.getElementById('previewLink');
 const linksList = document.getElementById('linksList');
 
-// Base URL for short links
-const baseUrl = window.location.origin + window.location.pathname;
-
-// === Enhanced Redirect Function ===
+// === Enhanced Redirect Function - Direct to Target URL ===
 async function handleRedirection() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id");
@@ -49,17 +45,29 @@ async function handleRedirection() {
     return;
   }
 
-  // It's a redirect request - show loading and process
-  showRedirectLoading(id);
-  
+  // It's a redirect request - redirect directly to target URL
+  await processDirectRedirect(id);
+}
+
+// === Process Direct Redirect ===
+async function processDirectRedirect(id) {
   try {
     const ref = doc(db, "links", id);
     const docSnap = await getDoc(ref);
 
     if (docSnap.exists()) {
       const targetUrl = docSnap.data().url;
-      await logRedirectAnalytics(id, targetUrl);
-      performRedirect(targetUrl);
+      
+      // Validate URL format
+      let finalUrl = targetUrl;
+      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+        finalUrl = 'https://' + finalUrl;
+      }
+      
+      // Direct immediate redirect
+      console.log(`Redirecting ${id} -> ${finalUrl}`);
+      window.location.replace(finalUrl);
+      
     } else {
       showRedirectError(id);
     }
@@ -67,49 +75,6 @@ async function handleRedirection() {
     console.error("Redirect error:", error);
     showRedirectError(id);
   }
-}
-
-// === Show redirect loading screen ===
-function showRedirectLoading(id) {
-  document.body.innerHTML = `
-    <div class="redirect-container">
-      <div class="redirect-loader">
-        <div class="loader-spinner"></div>
-        <h2>Redirecting...</h2>
-        <p>Taking you to your destination</p>
-        <div class="redirect-info">
-          <div class="short-id">Short ID: <strong>${id}</strong></div>
-          <div class="loading-bar">
-            <div class="loading-progress"></div>
-          </div>
-        </div>
-        <div class="redirect-links">
-          <a href="${baseUrl}" class="btn-cancel">
-            <i class="fas fa-home"></i>
-            Back to Home
-          </a>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // Add redirect styles
-  addRedirectStyles();
-}
-
-// === Perform the actual redirect ===
-function performRedirect(url) {
-  // Add a small delay to show the loading screen
-  setTimeout(() => {
-    // Use meta refresh for better compatibility
-    const metaRefresh = document.createElement('meta');
-    metaRefresh.httpEquiv = "refresh";
-    metaRefresh.content = `0;url=${url}`;
-    document.head.appendChild(metaRefresh);
-    
-    // Also use window.location as backup
-    window.location.href = url;
-  }, 1500);
 }
 
 // === Show redirect error ===
@@ -133,27 +98,27 @@ function showRedirectError(id) {
         </div>
         
         <div class="error-actions">
-          <a href="${baseUrl}" class="btn-primary">
+          <button onclick="goToMainApp()" class="btn-primary">
             <i class="fas fa-plus"></i>
             Create Short Link
-          </a>
-          <a href="${baseUrl}" class="btn-secondary">
+          </button>
+          <button onclick="goToMainApp()" class="btn-secondary">
             <i class="fas fa-home"></i>
             Back to Home
-          </a>
-        </div>
-        
-        <div class="error-stats">
-          <div class="stat">
-            <i class="fas fa-link"></i>
-            <span>Create your first short URL</span>
-          </div>
+          </button>
         </div>
       </div>
     </div>
   `;
   
   addRedirectStyles();
+}
+
+// === Go to main app ===
+function goToMainApp() {
+  // Remove the id parameter and reload
+  const newUrl = window.location.origin + window.location.pathname;
+  window.location.href = newUrl;
 }
 
 // === Add redirect page styles ===
@@ -170,96 +135,6 @@ function addRedirectStyles() {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
       
-      .redirect-loader {
-        background: white;
-        padding: 40px;
-        border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        text-align: center;
-        max-width: 500px;
-        width: 100%;
-      }
-      
-      .loader-spinner {
-        width: 60px;
-        height: 60px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #667eea;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 20px;
-      }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      .redirect-loader h2 {
-        color: #2d3748;
-        margin-bottom: 10px;
-        font-size: 1.8rem;
-      }
-      
-      .redirect-loader p {
-        color: #718096;
-        margin-bottom: 25px;
-        font-size: 1.1rem;
-      }
-      
-      .redirect-info {
-        background: #f7fafc;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 20px 0;
-      }
-      
-      .short-id {
-        font-size: 1.1rem;
-        margin-bottom: 15px;
-      }
-      
-      .loading-bar {
-        width: 100%;
-        height: 6px;
-        background: #e2e8f0;
-        border-radius: 3px;
-        overflow: hidden;
-      }
-      
-      .loading-progress {
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, #667eea, #764ba2);
-        animation: loading 2s ease-in-out infinite;
-      }
-      
-      @keyframes loading {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
-      }
-      
-      .redirect-links {
-        margin-top: 20px;
-      }
-      
-      .btn-cancel {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        background: #e2e8f0;
-        color: #4a5568;
-        text-decoration: none;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-      }
-      
-      .btn-cancel:hover {
-        background: #cbd5e0;
-      }
-      
-      /* Error Page Styles */
       .error .error-content {
         background: white;
         padding: 40px;
@@ -328,6 +203,9 @@ function addRedirectStyles() {
         text-decoration: none;
         font-weight: 600;
         transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
       }
       
       .btn-primary {
@@ -349,27 +227,8 @@ function addRedirectStyles() {
         background: #cbd5e0;
       }
       
-      .error-stats {
-        display: flex;
-        justify-content: center;
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid #e2e8f0;
-      }
-      
-      .stat {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: #718096;
-      }
-      
-      .stat i {
-        color: #667eea;
-      }
-      
       @media (max-width: 768px) {
-        .redirect-loader, .error-content {
+        .error-content {
           padding: 30px 20px;
         }
         
@@ -389,25 +248,6 @@ function addRedirectStyles() {
   document.head.insertAdjacentHTML('beforeend', styles);
 }
 
-// === Log redirect analytics (optional) ===
-async function logRedirectAnalytics(id, targetUrl) {
-  try {
-    // You can implement analytics tracking here
-    console.log(`Redirect: ${id} -> ${targetUrl}`);
-    
-    // Example: Store analytics in Firestore
-    // await setDoc(doc(db, "analytics", `${id}_${Date.now()}`), {
-    //   id: id,
-    //   targetUrl: targetUrl,
-    //   timestamp: new Date().toISOString(),
-    //   userAgent: navigator.userAgent,
-    //   referrer: document.referrer
-    // });
-  } catch (error) {
-    console.error("Analytics error:", error);
-  }
-}
-
 // === Initialize Main App ===
 function initializeMainApp() {
   loadLinksList();
@@ -416,22 +256,31 @@ function initializeMainApp() {
 
 // === Setup Event Listeners ===
 function setupEventListeners() {
-  saveBtn.addEventListener('click', saveShortLink);
-  copyBtn.addEventListener('click', () => {
-    copyToClipboard(shortUrlInput.value);
-  });
+  if (saveBtn) {
+    saveBtn.addEventListener('click', saveShortLink);
+  }
+  
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      copyToClipboard(shortUrlInput.value);
+    });
+  }
 
   // Enter key support
-  longUrlInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') saveShortLink();
-  });
+  if (longUrlInput) {
+    longUrlInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') saveShortLink();
+    });
+  }
 
-  customIdInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') saveShortLink();
-  });
+  if (customIdInput) {
+    customIdInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') saveShortLink();
+    });
+  }
 }
 
-// === Rest of your existing functions (unchanged) ===
+// === Create or Update Short Link ===
 async function saveShortLink() {
   const customId = customIdInput.value.trim();
   const longUrl = longUrlInput.value.trim();
@@ -457,7 +306,7 @@ async function saveShortLink() {
       createdAt: new Date().toISOString()
     });
 
-    const shortUrl = `${baseUrl}?id=${customId}`;
+    const shortUrl = `${window.location.origin}${window.location.pathname}?id=${customId}`;
     shortUrlInput.value = shortUrl;
     previewLink.href = shortUrl;
     resultContainer.classList.remove('hidden');
@@ -478,6 +327,7 @@ async function saveShortLink() {
   }
 }
 
+// === Load and display all links ===
 async function loadLinksList() {
   try {
     const querySnapshot = await getDocs(collection(db, "links"));
@@ -497,7 +347,10 @@ async function loadLinksList() {
   }
 }
 
+// === Display links in the UI ===
 function displayLinksList(links) {
+  if (!linksList) return;
+  
   if (links.length === 0) {
     linksList.innerHTML = `
       <div class="empty-state">
@@ -508,34 +361,57 @@ function displayLinksList(links) {
     return;
   }
 
+  const currentUrl = window.location.origin + window.location.pathname;
+  
   linksList.innerHTML = links.map(link => `
     <div class="link-item fade-in">
       <div class="link-header">
-        <div class="link-short">${baseUrl}?id=${link.id}</div>
+        <div class="link-short">${currentUrl}?id=${link.id}</div>
         <div class="link-actions">
-          <button class="btn-small btn-copy-small" onclick="copyToClipboard('${baseUrl}?id=${link.id}')">
+          <button class="btn-small btn-copy-small" onclick="copyToClipboard('${currentUrl}?id=${link.id}')">
             <i class="far fa-copy"></i> Copy
           </button>
-          <button class="btn-small btn-test" onclick="window.open('${baseUrl}?id=${link.id}', '_blank')">
+          <button class="btn-small btn-test" onclick="testRedirect('${currentUrl}?id=${link.id}')">
             <i class="fas fa-external-link-alt"></i> Test
           </button>
         </div>
       </div>
       <div class="link-original">${link.url}</div>
+      <div class="link-meta">
+        <small>Created: ${new Date(link.createdAt).toLocaleDateString()}</small>
+      </div>
     </div>
   `).join('');
 }
 
+// === Test redirect in new tab ===
+function testRedirect(url) {
+  window.open(url, '_blank');
+}
+
+// === Copy to Clipboard ===
 async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
     showNotification('✅ URL copied to clipboard!', 'success');
   } catch (err) {
     console.error('Failed to copy: ', err);
-    showNotification('❌ Failed to copy URL', 'error');
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      showNotification('✅ URL copied to clipboard!', 'success');
+    } catch (fallbackErr) {
+      showNotification('❌ Failed to copy URL', 'error');
+    }
+    document.body.removeChild(textArea);
   }
 }
 
+// === URL Validation ===
 function isValidUrl(string) {
   try {
     new URL(string);
@@ -545,7 +421,13 @@ function isValidUrl(string) {
   }
 }
 
+// === Show Notification ===
 function showNotification(message, type) {
+  // Remove existing notifications
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(notification => notification.remove());
+
+  // Create notification element
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
   notification.innerHTML = `
@@ -555,6 +437,7 @@ function showNotification(message, type) {
     </div>
   `;
 
+  // Add styles for notification
   if (!document.querySelector('.notification-styles')) {
     const styles = document.createElement('style');
     styles.className = 'notification-styles';
@@ -571,6 +454,7 @@ function showNotification(message, type) {
         transform: translateX(400px);
         transition: transform 0.3s ease;
         max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
       }
       .notification.success {
         background: #48bb78;
@@ -591,7 +475,11 @@ function showNotification(message, type) {
   }
 
   document.body.appendChild(notification);
+
+  // Show notification
   setTimeout(() => notification.classList.add('show'), 100);
+
+  // Remove notification after 3 seconds
   setTimeout(() => {
     notification.classList.remove('show');
     setTimeout(() => {
@@ -608,3 +496,5 @@ window.onload = handleRedirection;
 // === Expose functions to global scope ===
 window.copyToClipboard = copyToClipboard;
 window.saveShortLink = saveShortLink;
+window.testRedirect = testRedirect;
+window.goToMainApp = goToMainApp;
