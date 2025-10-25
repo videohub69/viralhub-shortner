@@ -7,8 +7,7 @@ import {
     getDoc, 
     collection, 
     getDocs,
-    deleteDoc,
-    updateDoc
+    deleteDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // Your Firebase configuration
@@ -44,7 +43,7 @@ const linksCount = document.getElementById('linksCount');
 let currentEditId = null;
 let isEditMode = false;
 
-// === Enhanced Redirect Function - Direct to Target URL ===
+// === Instant Redirect Function - No Waiting Page ===
 async function handleRedirection() {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
@@ -55,236 +54,119 @@ async function handleRedirection() {
         return;
     }
 
-    // It's a redirect request - redirect directly to target URL
-    await processDirectRedirect(id);
+    // It's a redirect request - process immediately without loading screen
+    await processInstantRedirect(id);
 }
 
-// === Process Direct Redirect ===
-async function processDirectRedirect(id) {
+// === Process Instant Redirect ===
+async function processInstantRedirect(id) {
     try {
-        showRedirectLoading();
-        
         const ref = doc(db, "links", id);
         const docSnap = await getDoc(ref);
 
         if (docSnap.exists()) {
             const targetUrl = docSnap.data().url;
             
-            // Validate URL format
+            // Validate and format URL
             let finalUrl = targetUrl;
             if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
                 finalUrl = 'https://' + finalUrl;
             }
             
-            // Add small delay to show loading
-            setTimeout(() => {
-                window.location.replace(finalUrl);
-            }, 1000);
+            // INSTANT REDIRECT - No delay, no loading screen
+            window.location.href = finalUrl;
             
         } else {
-            showRedirectError(id);
+            // Show error immediately without loading screen
+            showInstantError(id);
         }
     } catch (error) {
         console.error("Redirect error:", error);
-        showRedirectError(id);
+        showInstantError(id);
     }
 }
 
-// === Show redirect loading screen ===
-function showRedirectLoading() {
+// === Show Instant Error (no loading screen) ===
+function showInstantError(id) {
+    // Simple error page without complex styling
     document.body.innerHTML = `
-        <div class="redirect-container">
-            <div class="redirect-loader">
-                <div class="loader-spinner"></div>
-                <h2>Redirecting...</h2>
-                <p>Taking you to your destination</p>
-                <div class="loading-bar">
-                    <div class="loading-progress"></div>
-                </div>
-            </div>
-        </div>
-        <style>
-            .redirect-container {
-                min-height: 100vh;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 20px;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            }
-            .redirect-loader {
-                background: white;
+        <div style="
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            text-align: center;
+        ">
+            <div style="
+                background: rgba(255,255,255,0.95);
                 padding: 40px;
                 border-radius: 20px;
                 box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                text-align: center;
-                max-width: 400px;
+                max-width: 500px;
                 width: 100%;
-            }
-            .loader-spinner {
-                width: 60px;
-                height: 60px;
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid #667eea;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-                margin: 0 auto 20px;
-            }
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            .redirect-loader h2 {
                 color: #2d3748;
-                margin-bottom: 10px;
-            }
-            .redirect-loader p {
-                color: #718096;
-                margin-bottom: 25px;
-            }
-            .loading-bar {
-                width: 100%;
-                height: 6px;
-                background: #e2e8f0;
-                border-radius: 3px;
-                overflow: hidden;
-            }
-            .loading-progress {
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, #667eea, #764ba2);
-                animation: loading 1s ease-in-out infinite;
-            }
-            @keyframes loading {
-                0% { transform: translateX(-100%); }
-                100% { transform: translateX(100%); }
-            }
-        </style>
-    `;
-}
-
-// === Show redirect error ===
-function showRedirectError(id) {
-    document.body.innerHTML = `
-        <div class="redirect-container error">
-            <div class="error-content">
-                <div class="error-icon">
+            ">
+                <div style="font-size: 4rem; color: #e53e3e; margin-bottom: 20px;">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
-                <h2>Link Not Found</h2>
-                <p>The short link <strong>"${id}"</strong> doesn't exist or may have been deleted.</p>
+                <h2 style="margin-bottom: 15px; font-size: 2rem;">Link Not Found</h2>
+                <p style="color: #718096; margin-bottom: 25px; font-size: 1.1rem;">
+                    The short link <strong>"${id}"</strong> doesn't exist or may have been deleted.
+                </p>
                 
-                <div class="error-suggestions">
-                    <h3>What you can do:</h3>
-                    <ul>
-                        <li>Check if the short ID is correct</li>
-                        <li>Contact the link owner</li>
-                        <li>Create your own short link</li>
+                <div style="background: #fff5f5; padding: 20px; border-radius: 10px; margin: 25px 0; text-align: left;">
+                    <h3 style="color: #c53030; margin-bottom: 15px; font-size: 1.2rem;">What you can do:</h3>
+                    <ul style="color: #718096; padding-left: 20px;">
+                        <li style="margin-bottom: 8px;">Check if the short ID is correct</li>
+                        <li style="margin-bottom: 8px;">Contact the link owner</li>
+                        <li style="margin-bottom: 8px;">Create your own short link</li>
                     </ul>
                 </div>
                 
-                <div class="error-actions">
-                    <button onclick="goToMainApp()" class="btn-primary">
+                <div style="display: flex; gap: 15px; justify-content: center; margin: 30px 0; flex-wrap: wrap;">
+                    <button onclick="goToMainApp()" style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        transition: all 0.3s ease;
+                        border: none;
+                        cursor: pointer;
+                        font-size: 1rem;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 20px rgba(102, 126, 234, 0.3)'" 
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                         <i class="fas fa-plus"></i>
                         Create Short Link
                     </button>
-                    <button onclick="goToMainApp()" class="btn-secondary">
+                    <button onclick="goToMainApp()" style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        transition: all 0.3s ease;
+                        border: none;
+                        cursor: pointer;
+                        font-size: 1rem;
+                        background: #e2e8f0;
+                        color: #4a5568;
+                    " onmouseover="this.style.background='#cbd5e0'" 
+                    onmouseout="this.style.background='#e2e8f0'">
                         <i class="fas fa-home"></i>
                         Back to Home
                     </button>
                 </div>
             </div>
         </div>
-        <style>
-            .redirect-container {
-                min-height: 100vh;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 20px;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            }
-            .error-content {
-                background: white;
-                padding: 40px;
-                border-radius: 20px;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                text-align: center;
-                max-width: 500px;
-                width: 100%;
-            }
-            .error-icon {
-                font-size: 4rem;
-                color: #e53e3e;
-                margin-bottom: 20px;
-            }
-            .error-content h2 {
-                color: #2d3748;
-                margin-bottom: 15px;
-                font-size: 2rem;
-            }
-            .error-content p {
-                color: #718096;
-                margin-bottom: 25px;
-                font-size: 1.1rem;
-            }
-            .error-suggestions {
-                background: #fff5f5;
-                padding: 20px;
-                border-radius: 10px;
-                margin: 25px 0;
-                text-align: left;
-            }
-            .error-suggestions h3 {
-                color: #c53030;
-                margin-bottom: 15px;
-                font-size: 1.2rem;
-            }
-            .error-suggestions ul {
-                color: #718096;
-                padding-left: 20px;
-            }
-            .error-suggestions li {
-                margin-bottom: 8px;
-            }
-            .error-actions {
-                display: flex;
-                gap: 15px;
-                justify-content: center;
-                margin: 30px 0;
-                flex-wrap: wrap;
-            }
-            .btn-primary, .btn-secondary {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 12px 24px;
-                border-radius: 8px;
-                text-decoration: none;
-                font-weight: 600;
-                transition: all 0.3s ease;
-                border: none;
-                cursor: pointer;
-                font-size: 1rem;
-            }
-            .btn-primary {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-            }
-            .btn-primary:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-            }
-            .btn-secondary {
-                background: #e2e8f0;
-                color: #4a5568;
-            }
-            .btn-secondary:hover {
-                background: #cbd5e0;
-            }
-        </style>
     `;
 }
 
@@ -298,7 +180,6 @@ function goToMainApp() {
 function initializeMainApp() {
     loadLinksList();
     setupEventListeners();
-    showNotification('Welcome to QuickLink! Create your first short URL.', 'info');
 }
 
 // === Setup Event Listeners ===
@@ -458,7 +339,7 @@ function editShortLink(linkId, currentUrl) {
     showNotification('📝 You are now editing the link. Update the URL below.', 'info');
 }
 
-// === Update Short Link - FIXED VERSION ===
+// === Update Short Link ===
 async function updateShortLink() {
     const longUrl = longUrlInput.value.trim();
 
@@ -481,7 +362,7 @@ async function updateShortLink() {
         
         console.log('Updating document:', currentEditId, 'with URL:', formattedUrl);
         
-        // FIX: Use setDoc with merge instead of updateDoc for better compatibility
+        // Update in Firestore
         await setDoc(doc(db, "links", currentEditId), { 
             url: formattedUrl,
             updatedAt: new Date().toISOString()
